@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compound Growth Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #1e1e2e;
+      --text: #e8e8f0;
+      --muted: #8888a0;
+      --accent: #00d4aa;
+      --accent-hover: #00b894;
+      --accent-dim: rgba(0, 212, 170, 0.12);
+      --positive: #00d4aa;
+      --negative: #ff6b6b;
+      --warning: #ffd93d;
+      --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+      --font-display: "Outfit", sans-serif;
+      --font-mono: "IBM Plex Mono", monospace;
+    }
+
+    html {
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-display);
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 1rem;
+      z-index: 100;
+      padding: 0.5rem 1rem;
+      background: var(--accent);
+      color: var(--bg);
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .skip-link:focus-visible {
+      top: 1rem;
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      text-wrap: balance;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-section {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background-color: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: var(--font-display);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: var(--focus-ring);
+    }
+
+    .currency-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .currency-row input[type="text"]#currencyDisplay {
+      width: 4.5rem;
+      flex-shrink: 0;
+      text-align: center;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .currency-row input[type="number"] {
+      flex: 1;
+    }
+
+    .form-options {
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .checkbox-row input[type="checkbox"]:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .checkbox-row span {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .withdrawal-field {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .withdrawal-field.visible {
+      display: block;
+    }
+
+    button {
+      margin-top: 1.5rem;
+      padding: 0.75rem 2rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: var(--font-display);
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .error {
+      color: var(--negative);
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .error.visible {
+      display: block;
+    }
+
+    .warning {
+      color: var(--warning);
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+      display: none;
+    }
+
+    .warning.visible {
+      display: block;
+    }
+
+    #results {
+      display: none;
+    }
+
+    #results.visible {
+      display: block;
+      animation: resultsIn 0.35s ease-out;
+    }
+
+    @keyframes resultsIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #results.visible {
+        animation: none;
+      }
+
+      input,
+      button {
+        transition: none;
+      }
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0;
+      margin-bottom: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .summary-item {
+      background: var(--bg);
+      padding: 1rem 1.25rem;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-item:last-child {
+      border-right: none;
+    }
+
+    .summary-item .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .summary-item .value {
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .summary-item .value.positive {
+      color: var(--positive);
+    }
+
+    .summary-item .value.negative {
+      color: var(--negative);
+    }
+
+    .footnotes {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .footnotes p + p {
+      margin-top: 0.35rem;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 300px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    caption {
+      text-align: left;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      caption-side: top;
+    }
+
+    th, td {
+      padding: 0.65rem 0.85rem;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+      font-variant-numeric: tabular-nums;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    td.month-cell {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    td.money-cell {
+      font-family: var(--font-mono);
+    }
+
+    tr:hover td {
+      background: var(--accent-dim);
+    }
+
+    .profit-positive {
+      color: var(--positive);
+    }
+
+    .profit-negative {
+      color: var(--negative);
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to calculator</a>
+
+  <div class="container">
+    <header>
+      <h1>Compound Growth Calculator</h1>
+      <p class="subtitle">Project your trading capital growth month by month.</p>
+    </header>
+
+    <main id="main">
+      <div class="card">
+        <div class="form-section">
+          <p class="form-section-label">Assumptions</p>
+          <div class="form-grid">
+            <div>
+              <label for="currency">Currency symbol</label>
+              <input type="text" id="currency" name="currency" value="RM" maxlength="6"
+                autocomplete="off" spellcheck="false" translate="no">
+            </div>
+            <div>
+              <label for="startingCapital">Starting capital</label>
+              <div class="currency-row">
+                <input type="text" id="currencyDisplay" value="RM" readonly tabindex="-1"
+                  aria-hidden="true">
+                <input type="number" id="startingCapital" name="startingCapital"
+                  placeholder="10000…" min="0" step="any"
+                  inputmode="decimal" autocomplete="off">
+              </div>
+            </div>
+            <div>
+              <label for="monthlyReturn">Monthly return (%)</label>
+              <input type="number" id="monthlyReturn" name="monthlyReturn"
+                placeholder="5…" step="any" inputmode="decimal" autocomplete="off">
+            </div>
+            <div>
+              <label for="numMonths">Number of months</label>
+              <input type="number" id="numMonths" name="numMonths"
+                placeholder="12…" min="1" step="1" inputmode="numeric" autocomplete="off">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="checkbox-row" for="withdrawalToggle">
+            <input type="checkbox" id="withdrawalToggle" name="withdrawalToggle">
+            <span>Enable monthly withdrawal</span>
+          </label>
+
+          <div class="withdrawal-field" id="withdrawalField">
+            <label for="withdrawalPercent">Monthly withdrawal (% of balance after return)</label>
+            <input type="number" id="withdrawalPercent" name="withdrawalPercent"
+              placeholder="10…" min="0" max="100" step="any"
+              inputmode="decimal" autocomplete="off">
+          </div>
+        </div>
+
+        <button type="button" id="calculateBtn">Calculate</button>
+        <p class="error" id="errorMsg" role="alert" aria-live="polite"></p>
+        <p class="warning" id="warningMsg" role="status" aria-live="polite"></p>
+      </div>
+
+      <div id="results" aria-live="polite">
+        <div class="card">
+          <h2>Summary</h2>
+          <div class="summary" id="summary"></div>
+          <div class="footnotes">
+            <p>Monthly return is applied before any withdrawal. No taxes, fees, or inflation are included.</p>
+            <p>For illustration only — not financial advice.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Balance Over Time</h2>
+          <div class="chart-wrap">
+            <canvas id="balanceChart" role="img" aria-label="Line chart showing balance growth over time"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Month-by-Month Breakdown</h2>
+          <div class="table-wrap">
+            <table>
+              <caption>Monthly ledger of starting balance, profit or loss, withdrawals, and ending balance</caption>
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // --- DOM references ---
+    const currencyInput = document.getElementById("currency");
+    const currencyDisplay = document.getElementById("currencyDisplay");
+    const startingCapitalInput = document.getElementById("startingCapital");
+    const monthlyReturnInput = document.getElementById("monthlyReturn");
+    const numMonthsInput = document.getElementById("numMonths");
+    const withdrawalToggle = document.getElementById("withdrawalToggle");
+    const withdrawalField = document.getElementById("withdrawalField");
+    const withdrawalPercentInput = document.getElementById("withdrawalPercent");
+    const calculateBtn = document.getElementById("calculateBtn");
+    const errorMsg = document.getElementById("errorMsg");
+    const warningMsg = document.getElementById("warningMsg");
+    const results = document.getElementById("results");
+    const summary = document.getElementById("summary");
+    const tableHead = document.getElementById("tableHead");
+    const tableBody = document.getElementById("tableBody");
+    const chartCanvas = document.getElementById("balanceChart");
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let chartInstance = null;
+
+    // Read accent colors from CSS variables for Chart.js consistency
+    const cssVars = getComputedStyle(document.documentElement);
+    const accentColor = cssVars.getPropertyValue("--accent").trim() || "#00d4aa";
+    const surfaceColor = cssVars.getPropertyValue("--surface").trim() || "#12121a";
+    const borderColor = cssVars.getPropertyValue("--border").trim() || "#1e1e2e";
+    const mutedColor = cssVars.getPropertyValue("--muted").trim() || "#8888a0";
+    const textColor = cssVars.getPropertyValue("--text").trim() || "#e8e8f0";
+    const negativeColor = cssVars.getPropertyValue("--negative").trim() || "#ff6b6b";
+
+    currencyInput.addEventListener("input", () => {
+      currencyDisplay.value = currencyInput.value || "RM";
+    });
+
+    withdrawalToggle.addEventListener("change", () => {
+      withdrawalField.classList.toggle("visible", withdrawalToggle.checked);
+    });
+
+    function formatMoney(amount, symbol) {
+      const formatted = Math.abs(amount).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      const prefix = amount < 0 ? "-" : "";
+      return prefix + symbol + " " + formatted;
+    }
+
+    // Validate inputs; returns parsed values or { error, focusField }
+    function validateInputs() {
+      const symbol = currencyInput.value.trim() || "RM";
+      const startingCapital = parseFloat(startingCapitalInput.value);
+      const monthlyReturn = parseFloat(monthlyReturnInput.value);
+      const numMonths = parseInt(numMonthsInput.value, 10);
+      const withdrawalEnabled = withdrawalToggle.checked;
+      const withdrawalPercent = withdrawalEnabled
+        ? parseFloat(withdrawalPercentInput.value)
+        : 0;
+
+      if (isNaN(startingCapital) || startingCapital < 0) {
+        return {
+          error: "Enter a valid starting capital (0 or greater).",
+          focusField: startingCapitalInput
+        };
+      }
+      if (isNaN(monthlyReturn)) {
+        return {
+          error: "Enter a valid monthly return percentage (positive or negative).",
+          focusField: monthlyReturnInput
+        };
+      }
+      if (isNaN(numMonths) || numMonths < 1 || !Number.isInteger(numMonths)) {
+        return {
+          error: "Enter a valid number of months (1 or more).",
+          focusField: numMonthsInput
+        };
+      }
+      if (withdrawalEnabled && (isNaN(withdrawalPercent) || withdrawalPercent < 0 || withdrawalPercent > 100)) {
+        return {
+          error: "Withdrawal percentage must be between 0 and 100.",
+          focusField: withdrawalPercentInput
+        };
+      }
+
+      return {
+        symbol,
+        startingCapital,
+        monthlyReturn,
+        numMonths,
+        withdrawalEnabled,
+        withdrawalPercent
+      };
+    }
+
+    /*
+     * Core compounding logic — runs once per month in this exact order:
+     * 1. balance_after_return = previous_balance × (1 + monthly_return / 100)
+     * 2. If withdrawal enabled: withdrawal = balance_after_return × (withdrawal% / 100)
+     *    ending_balance = balance_after_return − withdrawal (clamped at 0)
+     * 3. If withdrawal disabled: ending_balance = balance_after_return
+     * 4. ending_balance becomes previous_balance for the next month
+     *
+     * Edge cases:
+     * - Zero starting capital: all months remain at 0
+     * - Balance depleted to 0: remaining months padded with zeros (no further compounding)
+     */
+    function calculateGrowth(params) {
+      const {
+        startingCapital,
+        monthlyReturn,
+        numMonths,
+        withdrawalEnabled,
+        withdrawalPercent
+      } = params;
+
+      const rows = [];
+      let previousBalance = startingCapital;
+      let totalWithdrawn = 0;
+      let balanceClamped = false;
+      let balanceDepleted = startingCapital === 0;
+
+      for (let month = 1; month <= numMonths; month++) {
+        // If balance was fully depleted, pad remaining months with zeros
+        if (balanceDepleted) {
+          rows.push({
+            month,
+            startingBalance: 0,
+            profitLoss: 0,
+            withdrawal: 0,
+            endingBalance: 0
+          });
+          continue;
+        }
+
+        const startingBalance = previousBalance;
+
+        // Step 1: apply monthly return
+        const balanceAfterReturn = startingBalance * (1 + monthlyReturn / 100);
+        const profitLoss = balanceAfterReturn - startingBalance;
+
+        // Step 2 & 3: optional withdrawal, then compute ending balance
+        let withdrawal = 0;
+        let endingBalance = balanceAfterReturn;
+
+        if (withdrawalEnabled && withdrawalPercent > 0) {
+          withdrawal = balanceAfterReturn * (withdrawalPercent / 100);
+          endingBalance = balanceAfterReturn - withdrawal;
+          totalWithdrawn += withdrawal;
+
+          if (endingBalance < 0) {
+            endingBalance = 0;
+            balanceClamped = true;
+          }
+        }
+
+        rows.push({
+          month,
+          startingBalance,
+          profitLoss,
+          withdrawal,
+          endingBalance
+        });
+
+        previousBalance = endingBalance;
+
+        if (endingBalance === 0) {
+          balanceDepleted = true;
+        }
+      }
+
+      const finalCapital = previousBalance;
+      const totalProfit = (finalCapital - startingCapital) + totalWithdrawn;
+
+      return { rows, finalCapital, totalProfit, totalWithdrawn, balanceClamped, balanceDepleted };
+    }
+
+    function renderSummary(data, params) {
+      const { symbol, startingCapital, withdrawalEnabled } = params;
+      const { finalCapital, totalProfit, totalWithdrawn } = data;
+      const profitClass = totalProfit >= 0 ? "positive" : "negative";
+
+      let html = `
+        <div class="summary-item">
+          <div class="label">Final capital</div>
+          <div class="value">${formatMoney(finalCapital, symbol)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="label">Total profit</div>
+          <div class="value ${profitClass}">${formatMoney(totalProfit, symbol)}</div>
+        </div>
+      `;
+
+      if (withdrawalEnabled) {
+        html += `
+          <div class="summary-item">
+            <div class="label">Total withdrawn</div>
+            <div class="value">${formatMoney(totalWithdrawn, symbol)}</div>
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="summary-item">
+          <div class="label">Starting capital</div>
+          <div class="value">${formatMoney(startingCapital, symbol)}</div>
+        </div>
+      `;
+
+      summary.innerHTML = html;
+    }
+
+    function renderTable(data, params) {
+      const { symbol, withdrawalEnabled } = params;
+      const { rows } = data;
+
+      const headers = withdrawalEnabled
+        ? `<tr>
+            <th scope="col">Month</th>
+            <th scope="col">Starting Balance</th>
+            <th scope="col">Profit/Loss</th>
+            <th scope="col">Withdrawal</th>
+            <th scope="col">Ending Balance</th>
+          </tr>`
+        : `<tr>
+            <th scope="col">Month</th>
+            <th scope="col">Starting Balance</th>
+            <th scope="col">Profit/Loss</th>
+            <th scope="col">Ending Balance</th>
+          </tr>`;
+
+      tableHead.innerHTML = headers;
+
+      tableBody.innerHTML = rows.map((row) => {
+        const plClass = row.profitLoss >= 0 ? "profit-positive" : "profit-negative";
+        const plSign = row.profitLoss >= 0 ? "+" : "";
+
+        let cells = `
+          <td class="month-cell">${String(row.month).padStart(2, "0")}</td>
+          <td class="money-cell">${formatMoney(row.startingBalance, symbol)}</td>
+          <td class="money-cell ${plClass}">${plSign}${formatMoney(row.profitLoss, symbol)}</td>
+        `;
+
+        if (withdrawalEnabled) {
+          cells += `<td class="money-cell">${formatMoney(row.withdrawal, symbol)}</td>`;
+        }
+
+        cells += `<td class="money-cell">${formatMoney(row.endingBalance, symbol)}</td>`;
+        return `<tr>${cells}</tr>`;
+      }).join("");
+    }
+
+    function renderChart(data, params) {
+      const { symbol, startingCapital, withdrawalEnabled } = params;
+      const { rows, totalWithdrawn } = data;
+
+      // Month 0 = starting capital; then ending balance at each month
+      const labels = ["M0", ...rows.map((r) => "M" + r.month)];
+      const balances = [startingCapital, ...rows.map((r) => r.endingBalance)];
+
+      // Cumulative withdrawals over time (for dual-series when enabled)
+      let cumulativeWithdrawn = 0;
+      const withdrawalSeries = withdrawalEnabled
+        ? [0, ...rows.map((r) => {
+            cumulativeWithdrawn += r.withdrawal;
+            return cumulativeWithdrawn;
+          })]
+        : null;
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      const datasets = [{
+        label: "Ending Balance",
+        data: balances,
+        borderColor: accentColor,
+        backgroundColor: "rgba(0, 212, 170, 0.1)",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointRadius: rows.length > 50 ? 0 : 3,
+        pointHoverRadius: 5,
+        yAxisID: "y"
+      }];
+
+      if (withdrawalSeries && totalWithdrawn > 0) {
+        datasets.push({
+          label: "Cumulative Withdrawn",
+          data: withdrawalSeries,
+          borderColor: negativeColor,
+          backgroundColor: "transparent",
+          borderWidth: 2,
+          borderDash: [6, 4],
+          fill: false,
+          tension: 0.3,
+          pointRadius: rows.length > 50 ? 0 : 2,
+          pointHoverRadius: 4,
+          yAxisID: "y"
+        });
+      }
+
+      chartInstance = new Chart(chartCanvas, {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: prefersReducedMotion ? false : { duration: 400 },
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: {
+              display: withdrawalSeries && totalWithdrawn > 0,
+              labels: { color: mutedColor, font: { family: "'Outfit', sans-serif" } }
+            },
+            tooltip: {
+              backgroundColor: surfaceColor,
+              borderColor: borderColor,
+              borderWidth: 1,
+              titleColor: textColor,
+              bodyColor: textColor,
+              callbacks: {
+                label: (ctx) => ctx.dataset.label + ": " + formatMoney(ctx.parsed.y, symbol)
+              }
+            },
+            decimation: rows.length > 50 ? { enabled: true, algorithm: "lttb" } : undefined
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: "Month",
+                color: mutedColor,
+                font: { family: "'Outfit', sans-serif", size: 12 }
+              },
+              grid: { color: borderColor },
+              ticks: { color: mutedColor, maxTicksLimit: rows.length > 24 ? 12 : undefined }
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Balance",
+                color: mutedColor,
+                font: { family: "'Outfit', sans-serif", size: 12 }
+              },
+              grid: { color: borderColor },
+              ticks: {
+                color: mutedColor,
+                callback: (val) => symbol + " " + val.toLocaleString()
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function runCalculation() {
+      errorMsg.classList.remove("visible");
+      errorMsg.textContent = "";
+      warningMsg.classList.remove("visible");
+      warningMsg.textContent = "";
+
+      const params = validateInputs();
+      if (params.error) {
+        errorMsg.textContent = params.error;
+        errorMsg.classList.add("visible");
+        results.classList.remove("visible");
+        if (params.focusField) {
+          params.focusField.focus();
+        }
+        return;
+      }
+
+      const data = calculateGrowth(params);
+
+      if (data.balanceClamped) {
+        warningMsg.textContent =
+          "Balance was clamped to zero because withdrawals exceeded the available balance. Remaining months show zero activity.";
+        warningMsg.classList.add("visible");
+      } else if (data.balanceDepleted && params.withdrawalEnabled) {
+        warningMsg.textContent =
+          "Balance reached zero. No further compounding occurs in remaining months.";
+        warningMsg.classList.add("visible");
+      }
+
+      renderSummary(data, params);
+      renderTable(data, params);
+      renderChart(data, params);
+      results.classList.add("visible");
+    }
+
+    calculateBtn.addEventListener("click", runCalculation);
+
+    document.querySelectorAll("input").forEach((input) => {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") runCalculation();
+      });
+    });
+  </script>
+</body>
+</html>
