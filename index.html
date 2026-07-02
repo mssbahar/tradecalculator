@@ -504,7 +504,7 @@
       <header>
         <h1>Wan Trade Calculator</h1>
         <p class="subtitle">
-          Project your trading capital growth month by month.
+          Project your trading capital growth period by period.
         </p>
       </header>
 
@@ -553,7 +553,7 @@
                 </div>
               </div>
               <div>
-                <label for="numMonths">Number of months</label>
+                <label for="numMonths" id="numPeriodsLabel">Number of months</label>
                 <input
                   type="number"
                   id="numMonths"
@@ -569,6 +569,16 @@
                 <span class="form-section-label" id="returnModeLabel"
                   >Monthly return</span
                 >
+                <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 0.75rem;">
+                  <div>
+                    <label for="periodSelect" id="periodLabel">Period</label>
+                    <select id="periodSelect" name="periodSelect" autocomplete="off">
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly" selected>Monthly</option>
+                    </select>
+                  </div>
+                </div>
                 <div
                   class="radio-group"
                   role="radiogroup"
@@ -589,7 +599,9 @@
                   </label>
                 </div>
                 <div class="return-field" id="stableReturnField">
-                  <label for="monthlyReturn">Monthly return (%)</label>
+                  <label for="monthlyReturn" id="stableReturnLabel"
+                    >Monthly return (%)</label
+                  >
                   <input
                     type="number"
                     id="monthlyReturn"
@@ -601,8 +613,8 @@
                   />
                 </div>
                 <div class="return-field hidden" id="variableReturnField">
-                  <p class="return-hint">
-                    Set a return % for each month. Positive or negative values
+                  <p class="return-hint" id="variableReturnHint">
+                    Set a return % for each period. Positive or negative values
                     are allowed.
                   </p>
                   <div
@@ -615,17 +627,33 @@
           </div>
 
           <div class="form-options">
+            <div style="margin-bottom: 1rem;">
+              <label for="costPercent" id="costLabel">Estimated costs per period (%)</label>
+              <input
+                type="number"
+                id="costPercent"
+                name="costPercent"
+                placeholder="0.10…"
+                min="0"
+                step="any"
+                inputmode="decimal"
+                autocomplete="off"
+              />
+              <div class="return-hint" id="costHint" style="margin-top: 0.5rem;">
+                Covers fees + spread + slippage. Applied after return each period.
+              </div>
+            </div>
             <label class="checkbox-row" for="withdrawalToggle">
               <input
                 type="checkbox"
                 id="withdrawalToggle"
                 name="withdrawalToggle"
               />
-              <span>Enable monthly withdrawal</span>
+              <span id="withdrawalToggleText">Enable monthly withdrawal</span>
             </label>
 
             <div class="withdrawal-field" id="withdrawalField">
-              <label for="withdrawalPercent"
+              <label for="withdrawalPercent" id="withdrawalLabel"
                 >Monthly withdrawal (% of balance after return)</label
               >
               <input
@@ -658,8 +686,8 @@
             <div class="summary" id="summary"></div>
             <div class="footnotes">
               <p>
-                Monthly return is applied before any withdrawal. No taxes, fees,
-                or inflation are included.
+                Return is applied before costs and withdrawals. Costs model fees
+                + spread + slippage at a fixed % per period. No taxes or inflation are included.
               </p>
             </div>
           </div>
@@ -676,11 +704,11 @@
           </div>
 
           <div class="card">
-            <h2>Month-by-Month Breakdown</h2>
+            <h2 id="breakdownTitle">Month-by-Month Breakdown</h2>
             <div class="table-wrap">
               <table>
-                <caption>
-                  Monthly ledger of starting balance, profit or loss,
+                <caption id="breakdownCaption">
+                  Period ledger of starting balance, profit or loss, costs,
                   withdrawals, and ending balance
                 </caption>
                 <thead id="tableHead"></thead>
@@ -699,18 +727,29 @@
       const startingCapitalInput = document.getElementById("startingCapital");
       const monthlyReturnInput = document.getElementById("monthlyReturn");
       const numMonthsInput = document.getElementById("numMonths");
+      const numPeriodsLabel = document.getElementById("numPeriodsLabel");
+      const periodSelect = document.getElementById("periodSelect");
+      const periodLabel = document.getElementById("periodLabel");
       const returnModeInputs = document.querySelectorAll(
         'input[name="returnMode"]',
       );
       const stableReturnField = document.getElementById("stableReturnField");
+      const stableReturnLabel = document.getElementById("stableReturnLabel");
       const variableReturnField = document.getElementById(
         "variableReturnField",
       );
+      const variableReturnHint = document.getElementById("variableReturnHint");
       const monthlyReturnsGrid = document.getElementById("monthlyReturnsGrid");
+      const costPercentInput = document.getElementById("costPercent");
+      const costLabel = document.getElementById("costLabel");
       const withdrawalToggle = document.getElementById("withdrawalToggle");
+      const withdrawalToggleText = document.getElementById(
+        "withdrawalToggleText",
+      );
       const withdrawalField = document.getElementById("withdrawalField");
       const withdrawalPercentInput =
         document.getElementById("withdrawalPercent");
+      const withdrawalLabel = document.getElementById("withdrawalLabel");
       const calculateBtn = document.getElementById("calculateBtn");
       const errorMsg = document.getElementById("errorMsg");
       const warningMsg = document.getElementById("warningMsg");
@@ -719,6 +758,8 @@
       const tableHead = document.getElementById("tableHead");
       const tableBody = document.getElementById("tableBody");
       const chartCanvas = document.getElementById("balanceChart");
+      const breakdownTitle = document.getElementById("breakdownTitle");
+      const breakdownCaption = document.getElementById("breakdownCaption");
 
       const prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
@@ -746,13 +787,52 @@
         return selected ? selected.value : "stable";
       }
 
+      function getPeriod() {
+        return periodSelect.value || "monthly";
+      }
+
+      function getPeriodMeta() {
+        const period = getPeriod();
+        if (period === "daily") {
+          return {
+            period,
+            unit: "day",
+            unitPlural: "days",
+            adjective: "daily",
+            title: "Daily",
+            prefix: "D",
+            byBy: "Day-by-Day",
+          };
+        }
+        if (period === "weekly") {
+          return {
+            period,
+            unit: "week",
+            unitPlural: "weeks",
+            adjective: "weekly",
+            title: "Weekly",
+            prefix: "W",
+            byBy: "Week-by-Week",
+          };
+        }
+        return {
+          period: "monthly",
+          unit: "month",
+          unitPlural: "months",
+          adjective: "monthly",
+          title: "Monthly",
+          prefix: "M",
+          byBy: "Month-by-Month",
+        };
+      }
+
       function syncCurrencyDisplay() {
         currencyDisplay.textContent = currencySelect.value;
       }
 
       // Build per-month return inputs; preserve existing values when resizing
       function buildMonthlyReturnInputs() {
-        const numMonths = parseInt(numMonthsInput.value, 10);
+        const numPeriods = parseInt(numMonthsInput.value, 10);
         const existing = {};
         monthlyReturnsGrid.querySelectorAll("input").forEach((input) => {
           existing[input.dataset.month] = input.value;
@@ -760,31 +840,33 @@
 
         monthlyReturnsGrid.innerHTML = "";
 
-        if (isNaN(numMonths) || numMonths < 1) {
+        if (isNaN(numPeriods) || numPeriods < 1) {
           return;
         }
 
         const fallback = monthlyReturnInput.value || "0";
+        const meta = getPeriodMeta();
 
-        for (let month = 1; month <= numMonths; month++) {
+        for (let idx = 1; idx <= numPeriods; idx++) {
           const item = document.createElement("div");
           item.className = "month-return-item";
 
           const label = document.createElement("label");
-          label.setAttribute("for", "returnMonth" + month);
-          label.textContent = "Month " + String(month).padStart(2, "0");
+          label.setAttribute("for", "returnMonth" + idx);
+          label.textContent =
+            meta.title + " " + String(idx).padStart(2, "0");
 
           const input = document.createElement("input");
           input.type = "number";
-          input.id = "returnMonth" + month;
-          input.name = "returnMonth" + month;
-          input.dataset.month = String(month);
+          input.id = "returnMonth" + idx;
+          input.name = "returnMonth" + idx;
+          input.dataset.month = String(idx);
           input.placeholder = "0…";
           input.step = "any";
           input.inputMode = "decimal";
           input.autocomplete = "off";
           input.value =
-            existing[month] !== undefined ? existing[month] : fallback;
+            existing[idx] !== undefined ? existing[idx] : fallback;
 
           input.addEventListener("keydown", (e) => {
             if (e.key === "Enter") runCalculation();
@@ -805,6 +887,25 @@
         }
       }
 
+      function syncPeriodLabels() {
+        const meta = getPeriodMeta();
+        numPeriodsLabel.textContent = `Number of ${meta.unitPlural}`;
+        document.getElementById("returnModeLabel").textContent =
+          `${meta.title} return`;
+        stableReturnLabel.textContent = `${meta.title} return (%)`;
+        withdrawalToggleText.textContent = `Enable ${meta.adjective} withdrawal`;
+        withdrawalLabel.textContent =
+          `${meta.title} withdrawal (% of balance after return and costs)`;
+        costLabel.textContent = `Estimated costs per ${meta.unit} (%)`;
+        breakdownTitle.textContent = `${meta.byBy} Breakdown`;
+        breakdownCaption.textContent =
+          `${meta.title} ledger of starting balance, profit or loss, costs, withdrawals, and ending balance`;
+        if (variableReturnHint) {
+          variableReturnHint.textContent =
+            `Set a return % for each ${meta.unit}. Positive or negative values are allowed.`;
+        }
+      }
+
       currencySelect.addEventListener("change", syncCurrencyDisplay);
 
       returnModeInputs.forEach((radio) => {
@@ -817,11 +918,19 @@
         }
       });
 
+      periodSelect.addEventListener("change", () => {
+        syncPeriodLabels();
+        if (getReturnMode() === "variable") {
+          buildMonthlyReturnInputs();
+        }
+      });
+
       withdrawalToggle.addEventListener("change", () => {
         withdrawalField.classList.toggle("visible", withdrawalToggle.checked);
       });
 
       syncCurrencyDisplay();
+      syncPeriodLabels();
 
       function formatMoney(amount, symbol) {
         const formatted = Math.abs(amount).toLocaleString(undefined, {
@@ -836,8 +945,10 @@
       function validateInputs() {
         const symbol = currencySelect.value;
         const startingCapital = parseFloat(startingCapitalInput.value);
-        const numMonths = parseInt(numMonthsInput.value, 10);
+        const numPeriods = parseInt(numMonthsInput.value, 10);
+        const period = getPeriodMeta().period;
         const returnMode = getReturnMode();
+        const costPercent = parseFloat(costPercentInput.value || "0");
         const withdrawalEnabled = withdrawalToggle.checked;
         const withdrawalPercent = withdrawalEnabled
           ? parseFloat(withdrawalPercentInput.value)
@@ -849,37 +960,50 @@
             focusField: startingCapitalInput,
           };
         }
-        if (isNaN(numMonths) || numMonths < 1 || !Number.isInteger(numMonths)) {
+        if (
+          isNaN(numPeriods) ||
+          numPeriods < 1 ||
+          !Number.isInteger(numPeriods)
+        ) {
           return {
-            error: "Enter a valid number of months (1 or more).",
+            error: "Enter a valid number of periods (1 or more).",
             focusField: numMonthsInput,
           };
         }
 
-        let monthlyReturns;
+        if (isNaN(costPercent) || costPercent < 0) {
+          return {
+            error: "Estimated costs must be 0 or greater.",
+            focusField: costPercentInput,
+          };
+        }
+
+        let periodReturns;
+        const meta = getPeriodMeta();
 
         if (returnMode === "stable") {
-          const monthlyReturn = parseFloat(monthlyReturnInput.value);
-          if (isNaN(monthlyReturn)) {
+          const stableReturn = parseFloat(monthlyReturnInput.value);
+          if (isNaN(stableReturn)) {
             return {
               error:
-                "Enter a valid monthly return percentage (positive or negative).",
+                `Enter a valid ${meta.label}ly return percentage (positive or negative).`,
               focusField: monthlyReturnInput,
             };
           }
-          monthlyReturns = Array(numMonths).fill(monthlyReturn);
+          periodReturns = Array(numPeriods).fill(stableReturn);
         } else {
-          monthlyReturns = [];
+          periodReturns = [];
           const monthInputs = monthlyReturnsGrid.querySelectorAll("input");
-          for (let i = 0; i < numMonths; i++) {
+          for (let i = 0; i < numPeriods; i++) {
             const val = parseFloat(monthInputs[i]?.value);
             if (isNaN(val)) {
               return {
-                error: "Enter a valid return % for month " + (i + 1) + ".",
+                error:
+                  `Enter a valid return % for ${meta.label} ` + (i + 1) + ".",
                 focusField: monthInputs[i],
               };
             }
-            monthlyReturns.push(val);
+            periodReturns.push(val);
           }
         }
 
@@ -898,31 +1022,33 @@
         return {
           symbol,
           startingCapital,
-          monthlyReturns,
+          periodReturns,
+          period,
           returnMode,
-          numMonths,
+          numPeriods,
+          costPercent,
           withdrawalEnabled,
           withdrawalPercent,
         };
       }
 
       /*
-       * Core compounding logic — runs once per month in this exact order:
-       * 1. balance_after_return = previous_balance × (1 + monthly_return / 100)
-       * 2. If withdrawal enabled: withdrawal = balance_after_return × (withdrawal% / 100)
-       *    ending_balance = balance_after_return − withdrawal (clamped at 0)
-       * 3. If withdrawal disabled: ending_balance = balance_after_return
-       * 4. ending_balance becomes previous_balance for the next month
+       * Core compounding logic — runs once per period in this order:
+       * 1) Apply return
+       * 2) Apply costs (fees + spread + slippage) as % of balance after return
+       * 3) Optional withdrawal as % of balance after return and costs
+       * 4) Carry ending balance forward to next period
        *
        * Edge cases:
-       * - Zero starting capital: all months remain at 0
-       * - Balance depleted to 0: remaining months padded with zeros (no further compounding)
+       * - Zero starting capital: all periods remain at 0
+       * - Balance depleted to 0: remaining periods padded with zeros (no further compounding)
        */
       function calculateGrowth(params) {
         const {
           startingCapital,
-          monthlyReturns,
-          numMonths,
+          periodReturns,
+          numPeriods,
+          costPercent,
           withdrawalEnabled,
           withdrawalPercent,
         } = params;
@@ -930,18 +1056,25 @@
         const rows = [];
         let previousBalance = startingCapital;
         let totalWithdrawn = 0;
+        let totalCosts = 0;
         let balanceClamped = false;
         let balanceDepleted = startingCapital === 0;
 
-        for (let month = 1; month <= numMonths; month++) {
-          const monthlyReturn = monthlyReturns[month - 1];
+        // Risk metrics are calculated on the "pre-withdrawal" equity curve,
+        // so withdrawals don't appear as drawdowns.
+        const equityForRisk = [];
+        const netPeriodReturns = [];
+
+        for (let idx = 1; idx <= numPeriods; idx++) {
+          const periodReturn = periodReturns[idx - 1];
 
           if (balanceDepleted) {
             rows.push({
-              month,
-              monthlyReturn,
+              periodIndex: idx,
+              periodReturn,
               startingBalance: 0,
               profitLoss: 0,
+              costs: 0,
               withdrawal: 0,
               endingBalance: 0,
             });
@@ -950,15 +1083,35 @@
 
           const startingBalance = previousBalance;
           const balanceAfterReturn =
-            startingBalance * (1 + monthlyReturn / 100);
-          const profitLoss = balanceAfterReturn - startingBalance;
+            startingBalance * (1 + periodReturn / 100);
+
+          // Costs are applied after return
+          let costs = 0;
+          if (costPercent > 0) {
+            costs = balanceAfterReturn * (costPercent / 100);
+          }
+          let balanceAfterCosts = balanceAfterReturn - costs;
+          if (balanceAfterCosts < 0) {
+            balanceAfterCosts = 0;
+            balanceClamped = true;
+          }
+          totalCosts += costs;
+
+          // Profit/Loss shown as NET (after costs) and BEFORE withdrawals
+          const profitLoss = balanceAfterCosts - startingBalance;
+
+          // Risk series ignores withdrawals
+          equityForRisk.push(balanceAfterCosts);
+          if (startingBalance > 0) {
+            netPeriodReturns.push((balanceAfterCosts - startingBalance) / startingBalance);
+          }
 
           let withdrawal = 0;
-          let endingBalance = balanceAfterReturn;
+          let endingBalance = balanceAfterCosts;
 
           if (withdrawalEnabled && withdrawalPercent > 0) {
-            withdrawal = balanceAfterReturn * (withdrawalPercent / 100);
-            endingBalance = balanceAfterReturn - withdrawal;
+            withdrawal = balanceAfterCosts * (withdrawalPercent / 100);
+            endingBalance = balanceAfterCosts - withdrawal;
             totalWithdrawn += withdrawal;
 
             if (endingBalance < 0) {
@@ -968,10 +1121,11 @@
           }
 
           rows.push({
-            month,
-            monthlyReturn,
+            periodIndex: idx,
+            periodReturn,
             startingBalance,
             profitLoss,
+            costs,
             withdrawal,
             endingBalance,
           });
@@ -986,19 +1140,54 @@
         const finalCapital = previousBalance;
         const totalProfit = finalCapital - startingCapital + totalWithdrawn;
 
+        const risk = computeRiskMetrics(equityForRisk, netPeriodReturns);
+
         return {
           rows,
           finalCapital,
           totalProfit,
           totalWithdrawn,
+          totalCosts,
           balanceClamped,
           balanceDepleted,
+          risk,
         };
+      }
+
+      function computeRiskMetrics(equitySeries, netReturnSeries) {
+        let peak = 0;
+        let maxDrawdown = 0;
+        for (const v of equitySeries) {
+          if (v > peak) peak = v;
+          if (peak > 0) {
+            const dd = (peak - v) / peak;
+            if (dd > maxDrawdown) maxDrawdown = dd;
+          }
+        }
+
+        let worst = 0;
+        for (const r of netReturnSeries) {
+          if (r < worst) worst = r;
+        }
+
+        // Standard deviation of net returns
+        let volatility = 0;
+        if (netReturnSeries.length > 1) {
+          const mean =
+            netReturnSeries.reduce((a, b) => a + b, 0) / netReturnSeries.length;
+          const variance =
+            netReturnSeries.reduce((acc, r) => acc + (r - mean) ** 2, 0) /
+            (netReturnSeries.length - 1);
+          volatility = Math.sqrt(variance);
+        }
+
+        return { maxDrawdown, worstPeriodReturn: worst, volatility };
       }
 
       function renderSummary(data, params) {
         const { symbol, startingCapital, withdrawalEnabled } = params;
-        const { finalCapital, totalProfit, totalWithdrawn } = data;
+        const { finalCapital, totalProfit, totalWithdrawn, totalCosts, risk } =
+          data;
         const profitClass = totalProfit >= 0 ? "positive" : "negative";
 
         let html = `
@@ -1011,6 +1200,36 @@
           <div class="value ${profitClass}">${formatMoney(totalProfit, symbol)}</div>
         </div>
       `;
+
+        html += `
+        <div class="summary-item">
+          <div class="label">Max drawdown</div>
+          <div class="value">${(risk.maxDrawdown * 100).toFixed(2)}%</div>
+        </div>
+      `;
+
+        html += `
+        <div class="summary-item">
+          <div class="label">Worst period</div>
+          <div class="value">${(risk.worstPeriodReturn * 100).toFixed(2)}%</div>
+        </div>
+      `;
+
+        html += `
+        <div class="summary-item">
+          <div class="label">Volatility (net)</div>
+          <div class="value">${(risk.volatility * 100).toFixed(2)}%</div>
+        </div>
+      `;
+
+        if (totalCosts > 0) {
+          html += `
+          <div class="summary-item">
+            <div class="label">Total costs</div>
+            <div class="value">${formatMoney(totalCosts, symbol)}</div>
+          </div>
+        `;
+        }
 
         if (withdrawalEnabled) {
           html += `
@@ -1035,12 +1254,14 @@
         const { symbol, withdrawalEnabled, returnMode } = params;
         const { rows } = data;
         const showReturnCol = returnMode === "variable";
+        const meta = getPeriodMeta();
 
         let headerCells = `
-        <th scope="col">Month</th>
+        <th scope="col">${meta.title}</th>
         ${showReturnCol ? '<th scope="col">Return %</th>' : ""}
         <th scope="col">Starting Balance</th>
         <th scope="col">Profit/Loss</th>
+        <th scope="col">Costs</th>
         ${withdrawalEnabled ? '<th scope="col">Withdrawal</th>' : ""}
         <th scope="col">Ending Balance</th>
       `;
@@ -1053,18 +1274,22 @@
               row.profitLoss >= 0 ? "profit-positive" : "profit-negative";
             const plSign = row.profitLoss >= 0 ? "+" : "";
             const returnClass =
-              row.monthlyReturn >= 0 ? "profit-positive" : "profit-negative";
-            const returnSign = row.monthlyReturn >= 0 ? "+" : "";
+              row.periodReturn >= 0 ? "profit-positive" : "profit-negative";
+            const returnSign = row.periodReturn >= 0 ? "+" : "";
+            const costClass = row.costs > 0 ? "" : "";
 
-            let cells = `<td class="month-cell">${String(row.month).padStart(2, "0")}</td>`;
+            let cells = `<td class="month-cell">${meta.prefix}${String(
+              row.periodIndex,
+            ).padStart(2, "0")}</td>`;
 
             if (showReturnCol) {
-              cells += `<td class="money-cell ${returnClass}">${returnSign}${row.monthlyReturn.toFixed(2)}%</td>`;
+              cells += `<td class="money-cell ${returnClass}">${returnSign}${row.periodReturn.toFixed(2)}%</td>`;
             }
 
             cells += `
           <td class="money-cell">${formatMoney(row.startingBalance, symbol)}</td>
           <td class="money-cell ${plClass}">${plSign}${formatMoney(row.profitLoss, symbol)}</td>
+          <td class="money-cell">${formatMoney(row.costs, symbol)}</td>
         `;
 
             if (withdrawalEnabled) {
@@ -1080,9 +1305,13 @@
       function renderChart(data, params) {
         const { symbol, startingCapital, withdrawalEnabled } = params;
         const { rows, totalWithdrawn } = data;
+        const meta = getPeriodMeta();
 
-        // Month 0 = starting capital; then ending balance at each month
-        const labels = ["M0", ...rows.map((r) => "M" + r.month)];
+        // Period 0 = starting capital; then ending balance at each period
+        const labels = [
+          `${meta.prefix}0`,
+          ...rows.map((r) => `${meta.prefix}${r.periodIndex}`),
+        ];
         const balances = [startingCapital, ...rows.map((r) => r.endingBalance)];
 
         // Cumulative withdrawals over time (for dual-series when enabled)
@@ -1170,7 +1399,7 @@
               x: {
                 title: {
                   display: true,
-                  text: "Month",
+                  text: meta.title,
                   color: mutedColor,
                   font: { family: "'Outfit', sans-serif", size: 12 },
                 },
@@ -1219,11 +1448,11 @@
 
         if (data.balanceClamped) {
           warningMsg.textContent =
-            "Balance was clamped to zero because withdrawals exceeded the available balance. Remaining months show zero activity.";
+            "Balance was clamped to zero because withdrawals exceeded the available balance. Remaining periods show zero activity.";
           warningMsg.classList.add("visible");
         } else if (data.balanceDepleted && params.withdrawalEnabled) {
           warningMsg.textContent =
-            "Balance reached zero. No further compounding occurs in remaining months.";
+            "Balance reached zero. No further compounding occurs in remaining periods.";
           warningMsg.classList.add("visible");
         }
 
