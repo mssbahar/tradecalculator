@@ -122,7 +122,8 @@
     }
 
     input[type="number"],
-    input[type="text"] {
+    input[type="text"],
+    select {
       width: 100%;
       padding: 0.65rem 0.85rem;
       background-color: var(--bg);
@@ -134,7 +135,17 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
-    input:focus-visible {
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238888a0' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      padding-right: 2.25rem;
+    }
+
+    input:focus-visible,
+    select:focus-visible {
       outline: none;
       border-color: var(--accent);
       box-shadow: var(--focus-ring);
@@ -143,19 +154,95 @@
     .currency-row {
       display: flex;
       gap: 0.5rem;
+      align-items: stretch;
     }
 
-    .currency-row input[type="text"]#currencyDisplay {
-      width: 4.5rem;
+    .currency-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 4.5rem;
+      padding: 0 0.75rem;
       flex-shrink: 0;
-      text-align: center;
       font-family: var(--font-mono);
+      font-weight: 500;
+      font-size: 0.9rem;
       color: var(--muted);
-      pointer-events: none;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
     }
 
     .currency-row input[type="number"] {
       flex: 1;
+    }
+
+    .return-mode-section {
+      grid-column: 1 / -1;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .radio-option input[type="radio"] {
+      width: 1rem;
+      height: 1rem;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .radio-option input[type="radio"]:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .return-field {
+      margin-top: 0.25rem;
+    }
+
+    .return-field.hidden {
+      display: none;
+    }
+
+    .return-hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .monthly-returns-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.75rem;
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 0.25rem 0.25rem 0.25rem 0;
+      overscroll-behavior: contain;
+    }
+
+    .month-return-item label {
+      font-size: 0.75rem;
+      margin-bottom: 0.3rem;
+      font-family: var(--font-mono);
+    }
+
+    .month-return-item input {
+      padding: 0.5rem 0.65rem;
+      font-size: 0.9rem;
     }
 
     .form-options {
@@ -268,6 +355,7 @@
       }
 
       input,
+      select,
       button {
         transition: none;
       }
@@ -418,29 +506,74 @@
           <p class="form-section-label">Assumptions</p>
           <div class="form-grid">
             <div>
-              <label for="currency">Currency symbol</label>
-              <input type="text" id="currency" name="currency" value="RM" maxlength="6"
-                autocomplete="off" spellcheck="false" translate="no">
+              <label for="currency">Currency</label>
+              <select id="currency" name="currency" autocomplete="off" translate="no">
+                <option value="RM" selected>RM — Malaysian Ringgit</option>
+                <option value="USD">USD — US Dollar</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="GBP">GBP — British Pound</option>
+                <option value="JPY">JPY — Japanese Yen</option>
+                <option value="CNY">CNY — Chinese Yuan</option>
+                <option value="SGD">SGD — Singapore Dollar</option>
+                <option value="HKD">HKD — Hong Kong Dollar</option>
+                <option value="AUD">AUD — Australian Dollar</option>
+                <option value="CAD">CAD — Canadian Dollar</option>
+                <option value="CHF">CHF — Swiss Franc</option>
+                <option value="INR">INR — Indian Rupee</option>
+                <option value="KRW">KRW — South Korean Won</option>
+                <option value="THB">THB — Thai Baht</option>
+                <option value="IDR">IDR — Indonesian Rupiah</option>
+                <option value="PHP">PHP — Philippine Peso</option>
+                <option value="NZD">NZD — New Zealand Dollar</option>
+                <option value="AED">AED — UAE Dirham</option>
+                <option value="SAR">SAR — Saudi Riyal</option>
+                <option value="BRL">BRL — Brazilian Real</option>
+                <option value="MXN">MXN — Mexican Peso</option>
+                <option value="ZAR">ZAR — South African Rand</option>
+                <option value="TRY">TRY — Turkish Lira</option>
+                <option value="PKR">PKR — Pakistani Rupee</option>
+                <option value="VND">VND — Vietnamese Dong</option>
+                <option value="TWD">TWD — Taiwan Dollar</option>
+                <option value="NOK">NOK — Norwegian Krone</option>
+                <option value="SEK">SEK — Swedish Krona</option>
+                <option value="DKK">DKK — Danish Krone</option>
+              </select>
             </div>
             <div>
               <label for="startingCapital">Starting capital</label>
               <div class="currency-row">
-                <input type="text" id="currencyDisplay" value="RM" readonly tabindex="-1"
-                  aria-hidden="true">
+                <span id="currencyDisplay" class="currency-badge" aria-hidden="true">RM</span>
                 <input type="number" id="startingCapital" name="startingCapital"
                   placeholder="10000…" min="0" step="any"
                   inputmode="decimal" autocomplete="off">
               </div>
             </div>
             <div>
-              <label for="monthlyReturn">Monthly return (%)</label>
-              <input type="number" id="monthlyReturn" name="monthlyReturn"
-                placeholder="5…" step="any" inputmode="decimal" autocomplete="off">
-            </div>
-            <div>
               <label for="numMonths">Number of months</label>
               <input type="number" id="numMonths" name="numMonths"
                 placeholder="12…" min="1" step="1" inputmode="numeric" autocomplete="off">
+            </div>
+            <div class="return-mode-section">
+              <span class="form-section-label" id="returnModeLabel">Monthly return</span>
+              <div class="radio-group" role="radiogroup" aria-labelledby="returnModeLabel">
+                <label class="radio-option">
+                  <input type="radio" name="returnMode" value="stable" checked>
+                  <span>Stable (same each month)</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="returnMode" value="variable">
+                  <span>Month-by-month</span>
+                </label>
+              </div>
+              <div class="return-field" id="stableReturnField">
+                <label for="monthlyReturn">Monthly return (%)</label>
+                <input type="number" id="monthlyReturn" name="monthlyReturn"
+                  placeholder="5…" step="any" inputmode="decimal" autocomplete="off">
+              </div>
+              <div class="return-field hidden" id="variableReturnField">
+                <p class="return-hint">Set a return % for each month. Positive or negative values are allowed.</p>
+                <div class="monthly-returns-grid" id="monthlyReturnsGrid"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -497,11 +630,15 @@
 
   <script>
     // --- DOM references ---
-    const currencyInput = document.getElementById("currency");
+    const currencySelect = document.getElementById("currency");
     const currencyDisplay = document.getElementById("currencyDisplay");
     const startingCapitalInput = document.getElementById("startingCapital");
     const monthlyReturnInput = document.getElementById("monthlyReturn");
     const numMonthsInput = document.getElementById("numMonths");
+    const returnModeInputs = document.querySelectorAll('input[name="returnMode"]');
+    const stableReturnField = document.getElementById("stableReturnField");
+    const variableReturnField = document.getElementById("variableReturnField");
+    const monthlyReturnsGrid = document.getElementById("monthlyReturnsGrid");
     const withdrawalToggle = document.getElementById("withdrawalToggle");
     const withdrawalField = document.getElementById("withdrawalField");
     const withdrawalPercentInput = document.getElementById("withdrawalPercent");
@@ -518,7 +655,6 @@
 
     let chartInstance = null;
 
-    // Read accent colors from CSS variables for Chart.js consistency
     const cssVars = getComputedStyle(document.documentElement);
     const accentColor = cssVars.getPropertyValue("--accent").trim() || "#00d4aa";
     const surfaceColor = cssVars.getPropertyValue("--surface").trim() || "#12121a";
@@ -527,13 +663,86 @@
     const textColor = cssVars.getPropertyValue("--text").trim() || "#e8e8f0";
     const negativeColor = cssVars.getPropertyValue("--negative").trim() || "#ff6b6b";
 
-    currencyInput.addEventListener("input", () => {
-      currencyDisplay.value = currencyInput.value || "RM";
+    function getReturnMode() {
+      const selected = document.querySelector('input[name="returnMode"]:checked');
+      return selected ? selected.value : "stable";
+    }
+
+    function syncCurrencyDisplay() {
+      currencyDisplay.textContent = currencySelect.value;
+    }
+
+    // Build per-month return inputs; preserve existing values when resizing
+    function buildMonthlyReturnInputs() {
+      const numMonths = parseInt(numMonthsInput.value, 10);
+      const existing = {};
+      monthlyReturnsGrid.querySelectorAll("input").forEach((input) => {
+        existing[input.dataset.month] = input.value;
+      });
+
+      monthlyReturnsGrid.innerHTML = "";
+
+      if (isNaN(numMonths) || numMonths < 1) {
+        return;
+      }
+
+      const fallback = monthlyReturnInput.value || "0";
+
+      for (let month = 1; month <= numMonths; month++) {
+        const item = document.createElement("div");
+        item.className = "month-return-item";
+
+        const label = document.createElement("label");
+        label.setAttribute("for", "returnMonth" + month);
+        label.textContent = "Month " + String(month).padStart(2, "0");
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.id = "returnMonth" + month;
+        input.name = "returnMonth" + month;
+        input.dataset.month = String(month);
+        input.placeholder = "0…";
+        input.step = "any";
+        input.inputMode = "decimal";
+        input.autocomplete = "off";
+        input.value = existing[month] !== undefined ? existing[month] : fallback;
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") runCalculation();
+        });
+
+        item.appendChild(label);
+        item.appendChild(input);
+        monthlyReturnsGrid.appendChild(item);
+      }
+    }
+
+    function updateReturnModeUI() {
+      const isVariable = getReturnMode() === "variable";
+      stableReturnField.classList.toggle("hidden", isVariable);
+      variableReturnField.classList.toggle("hidden", !isVariable);
+      if (isVariable) {
+        buildMonthlyReturnInputs();
+      }
+    }
+
+    currencySelect.addEventListener("change", syncCurrencyDisplay);
+
+    returnModeInputs.forEach((radio) => {
+      radio.addEventListener("change", updateReturnModeUI);
+    });
+
+    numMonthsInput.addEventListener("input", () => {
+      if (getReturnMode() === "variable") {
+        buildMonthlyReturnInputs();
+      }
     });
 
     withdrawalToggle.addEventListener("change", () => {
       withdrawalField.classList.toggle("visible", withdrawalToggle.checked);
     });
+
+    syncCurrencyDisplay();
 
     function formatMoney(amount, symbol) {
       const formatted = Math.abs(amount).toLocaleString(undefined, {
@@ -546,10 +755,10 @@
 
     // Validate inputs; returns parsed values or { error, focusField }
     function validateInputs() {
-      const symbol = currencyInput.value.trim() || "RM";
+      const symbol = currencySelect.value;
       const startingCapital = parseFloat(startingCapitalInput.value);
-      const monthlyReturn = parseFloat(monthlyReturnInput.value);
       const numMonths = parseInt(numMonthsInput.value, 10);
+      const returnMode = getReturnMode();
       const withdrawalEnabled = withdrawalToggle.checked;
       const withdrawalPercent = withdrawalEnabled
         ? parseFloat(withdrawalPercentInput.value)
@@ -561,18 +770,39 @@
           focusField: startingCapitalInput
         };
       }
-      if (isNaN(monthlyReturn)) {
-        return {
-          error: "Enter a valid monthly return percentage (positive or negative).",
-          focusField: monthlyReturnInput
-        };
-      }
       if (isNaN(numMonths) || numMonths < 1 || !Number.isInteger(numMonths)) {
         return {
           error: "Enter a valid number of months (1 or more).",
           focusField: numMonthsInput
         };
       }
+
+      let monthlyReturns;
+
+      if (returnMode === "stable") {
+        const monthlyReturn = parseFloat(monthlyReturnInput.value);
+        if (isNaN(monthlyReturn)) {
+          return {
+            error: "Enter a valid monthly return percentage (positive or negative).",
+            focusField: monthlyReturnInput
+          };
+        }
+        monthlyReturns = Array(numMonths).fill(monthlyReturn);
+      } else {
+        monthlyReturns = [];
+        const monthInputs = monthlyReturnsGrid.querySelectorAll("input");
+        for (let i = 0; i < numMonths; i++) {
+          const val = parseFloat(monthInputs[i]?.value);
+          if (isNaN(val)) {
+            return {
+              error: "Enter a valid return % for month " + (i + 1) + ".",
+              focusField: monthInputs[i]
+            };
+          }
+          monthlyReturns.push(val);
+        }
+      }
+
       if (withdrawalEnabled && (isNaN(withdrawalPercent) || withdrawalPercent < 0 || withdrawalPercent > 100)) {
         return {
           error: "Withdrawal percentage must be between 0 and 100.",
@@ -583,7 +813,8 @@
       return {
         symbol,
         startingCapital,
-        monthlyReturn,
+        monthlyReturns,
+        returnMode,
         numMonths,
         withdrawalEnabled,
         withdrawalPercent
@@ -605,7 +836,7 @@
     function calculateGrowth(params) {
       const {
         startingCapital,
-        monthlyReturn,
+        monthlyReturns,
         numMonths,
         withdrawalEnabled,
         withdrawalPercent
@@ -618,10 +849,12 @@
       let balanceDepleted = startingCapital === 0;
 
       for (let month = 1; month <= numMonths; month++) {
-        // If balance was fully depleted, pad remaining months with zeros
+        const monthlyReturn = monthlyReturns[month - 1];
+
         if (balanceDepleted) {
           rows.push({
             month,
+            monthlyReturn,
             startingBalance: 0,
             profitLoss: 0,
             withdrawal: 0,
@@ -631,12 +864,9 @@
         }
 
         const startingBalance = previousBalance;
-
-        // Step 1: apply monthly return
         const balanceAfterReturn = startingBalance * (1 + monthlyReturn / 100);
         const profitLoss = balanceAfterReturn - startingBalance;
 
-        // Step 2 & 3: optional withdrawal, then compute ending balance
         let withdrawal = 0;
         let endingBalance = balanceAfterReturn;
 
@@ -653,6 +883,7 @@
 
         rows.push({
           month,
+          monthlyReturn,
           startingBalance,
           profitLoss,
           withdrawal,
@@ -708,32 +939,34 @@
     }
 
     function renderTable(data, params) {
-      const { symbol, withdrawalEnabled } = params;
+      const { symbol, withdrawalEnabled, returnMode } = params;
       const { rows } = data;
+      const showReturnCol = returnMode === "variable";
 
-      const headers = withdrawalEnabled
-        ? `<tr>
-            <th scope="col">Month</th>
-            <th scope="col">Starting Balance</th>
-            <th scope="col">Profit/Loss</th>
-            <th scope="col">Withdrawal</th>
-            <th scope="col">Ending Balance</th>
-          </tr>`
-        : `<tr>
-            <th scope="col">Month</th>
-            <th scope="col">Starting Balance</th>
-            <th scope="col">Profit/Loss</th>
-            <th scope="col">Ending Balance</th>
-          </tr>`;
+      let headerCells = `
+        <th scope="col">Month</th>
+        ${showReturnCol ? '<th scope="col">Return %</th>' : ""}
+        <th scope="col">Starting Balance</th>
+        <th scope="col">Profit/Loss</th>
+        ${withdrawalEnabled ? '<th scope="col">Withdrawal</th>' : ""}
+        <th scope="col">Ending Balance</th>
+      `;
 
-      tableHead.innerHTML = headers;
+      tableHead.innerHTML = "<tr>" + headerCells + "</tr>";
 
       tableBody.innerHTML = rows.map((row) => {
         const plClass = row.profitLoss >= 0 ? "profit-positive" : "profit-negative";
         const plSign = row.profitLoss >= 0 ? "+" : "";
+        const returnClass = row.monthlyReturn >= 0 ? "profit-positive" : "profit-negative";
+        const returnSign = row.monthlyReturn >= 0 ? "+" : "";
 
-        let cells = `
-          <td class="month-cell">${String(row.month).padStart(2, "0")}</td>
+        let cells = `<td class="month-cell">${String(row.month).padStart(2, "0")}</td>`;
+
+        if (showReturnCol) {
+          cells += `<td class="money-cell ${returnClass}">${returnSign}${row.monthlyReturn.toFixed(2)}%</td>`;
+        }
+
+        cells += `
           <td class="money-cell">${formatMoney(row.startingBalance, symbol)}</td>
           <td class="money-cell ${plClass}">${plSign}${formatMoney(row.profitLoss, symbol)}</td>
         `;
@@ -888,8 +1121,8 @@
 
     calculateBtn.addEventListener("click", runCalculation);
 
-    document.querySelectorAll("input").forEach((input) => {
-      input.addEventListener("keydown", (e) => {
+    document.querySelectorAll("input, select").forEach((el) => {
+      el.addEventListener("keydown", (e) => {
         if (e.key === "Enter") runCalculation();
       });
     });
