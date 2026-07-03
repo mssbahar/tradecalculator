@@ -591,11 +591,11 @@
                       value="stable"
                       checked
                     />
-                    <span>Stable (same each month)</span>
+                    <span id="stableReturnModeText">Stable (same each month)</span>
                   </label>
                   <label class="radio-option">
                     <input type="radio" name="returnMode" value="variable" />
-                    <span>Month-by-month</span>
+                    <span id="variableReturnModeText">Month-by-month</span>
                   </label>
                 </div>
                 <div class="return-field" id="stableReturnField">
@@ -627,22 +627,74 @@
           </div>
 
           <div class="form-options">
+            <p class="form-section-label">Costs, Deposits &amp; Withdrawals</p>
             <div style="margin-bottom: 1rem;">
-              <label for="costPercent" id="costLabel">Estimated costs per period (%)</label>
-              <input
-                type="number"
-                id="costPercent"
-                name="costPercent"
-                placeholder="0.10…"
-                min="0"
-                step="any"
-                inputmode="decimal"
-                autocomplete="off"
-              />
+              <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                  <label for="costPeriodSelect" id="costPeriodLabel">Cost period</label>
+                  <select id="costPeriodSelect" name="costPeriodSelect" autocomplete="off">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly" selected>Monthly</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="costPercent" id="costLabel">Estimated costs (%)</label>
+                  <input
+                    type="number"
+                    id="costPercent"
+                    name="costPercent"
+                    placeholder="0.10…"
+                    min="0"
+                    step="any"
+                    inputmode="decimal"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
               <div class="return-hint" id="costHint" style="margin-top: 0.5rem;">
                 Covers fees + spread + slippage. Applied after return each period.
               </div>
             </div>
+
+            <label class="checkbox-row" for="depositToggle">
+              <input
+                type="checkbox"
+                id="depositToggle"
+                name="depositToggle"
+              />
+              <span id="depositToggleText">Enable monthly deposits</span>
+            </label>
+
+            <div class="withdrawal-field" id="depositField">
+              <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                  <label for="depositPeriodSelect" id="depositPeriodLabel">Deposit period</label>
+                  <select id="depositPeriodSelect" name="depositPeriodSelect" autocomplete="off">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly" selected>Monthly</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="depositAmount" id="depositLabel">Monthly deposit amount</label>
+                  <input
+                    type="number"
+                    id="depositAmount"
+                    name="depositAmount"
+                    placeholder="500…"
+                    min="0"
+                    step="any"
+                    inputmode="decimal"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
+              <div class="return-hint" id="depositHint" style="margin-top: 0.5rem;">
+                Added at the start of each period before return is applied.
+              </div>
+            </div>
+
             <label class="checkbox-row" for="withdrawalToggle">
               <input
                 type="checkbox"
@@ -653,20 +705,32 @@
             </label>
 
             <div class="withdrawal-field" id="withdrawalField">
-              <label for="withdrawalPercent" id="withdrawalLabel"
-                >Monthly withdrawal (% of balance after return)</label
-              >
-              <input
-                type="number"
-                id="withdrawalPercent"
-                name="withdrawalPercent"
-                placeholder="10…"
-                min="0"
-                max="100"
-                step="any"
-                inputmode="decimal"
-                autocomplete="off"
-              />
+              <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                  <label for="withdrawalPeriodSelect" id="withdrawalPeriodLabel">Withdrawal period</label>
+                  <select id="withdrawalPeriodSelect" name="withdrawalPeriodSelect" autocomplete="off">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly" selected>Monthly</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="withdrawalPercent" id="withdrawalLabel"
+                    >Monthly withdrawal (%)</label
+                  >
+                  <input
+                    type="number"
+                    id="withdrawalPercent"
+                    name="withdrawalPercent"
+                    placeholder="10…"
+                    min="0"
+                    max="100"
+                    step="any"
+                    inputmode="decimal"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -686,8 +750,13 @@
             <div class="summary" id="summary"></div>
             <div class="footnotes">
               <p>
-                Return is applied before costs and withdrawals. Costs model fees
-                + spread + slippage at a fixed % per period. No taxes or inflation are included.
+                Each period: deposit (optional) → return → costs → withdrawal (optional).
+                Deposits, costs, and withdrawals can use their own daily/weekly/monthly period and are converted to match the simulation period. No taxes or inflation are included.
+              </p>
+              <p>
+                <strong>Max drawdown</strong> — largest peak-to-trough drop in balance.
+                <strong>Worst period</strong> — single worst return in one period.
+                <strong>Volatility</strong> — how much returns swing up and down.
               </p>
             </div>
           </div>
@@ -708,7 +777,7 @@
             <div class="table-wrap">
               <table>
                 <caption id="breakdownCaption">
-                  Period ledger of starting balance, profit or loss, costs,
+                  Period ledger of starting balance, deposits, profit or loss, costs,
                   withdrawals, and ending balance
                 </caption>
                 <thead id="tableHead"></thead>
@@ -742,6 +811,8 @@
       const monthlyReturnsGrid = document.getElementById("monthlyReturnsGrid");
       const costPercentInput = document.getElementById("costPercent");
       const costLabel = document.getElementById("costLabel");
+      const costPeriodSelect = document.getElementById("costPeriodSelect");
+      const costHint = document.getElementById("costHint");
       const withdrawalToggle = document.getElementById("withdrawalToggle");
       const withdrawalToggleText = document.getElementById(
         "withdrawalToggleText",
@@ -750,6 +821,22 @@
       const withdrawalPercentInput =
         document.getElementById("withdrawalPercent");
       const withdrawalLabel = document.getElementById("withdrawalLabel");
+      const withdrawalPeriodSelect = document.getElementById(
+        "withdrawalPeriodSelect",
+      );
+      const depositToggle = document.getElementById("depositToggle");
+      const depositToggleText = document.getElementById("depositToggleText");
+      const depositField = document.getElementById("depositField");
+      const depositAmountInput = document.getElementById("depositAmount");
+      const depositLabel = document.getElementById("depositLabel");
+      const depositPeriodSelect = document.getElementById("depositPeriodSelect");
+      const depositHint = document.getElementById("depositHint");
+      const stableReturnModeText = document.getElementById(
+        "stableReturnModeText",
+      );
+      const variableReturnModeText = document.getElementById(
+        "variableReturnModeText",
+      );
       const calculateBtn = document.getElementById("calculateBtn");
       const errorMsg = document.getElementById("errorMsg");
       const warningMsg = document.getElementById("warningMsg");
@@ -791,8 +878,8 @@
         return periodSelect.value || "monthly";
       }
 
-      function getPeriodMeta() {
-        const period = getPeriod();
+      function getPeriodMeta(periodValue) {
+        const period = periodValue || getPeriod();
         if (period === "daily") {
           return {
             period,
@@ -802,6 +889,7 @@
             title: "Daily",
             prefix: "D",
             byBy: "Day-by-Day",
+            days: 1,
           };
         }
         if (period === "weekly") {
@@ -813,6 +901,7 @@
             title: "Weekly",
             prefix: "W",
             byBy: "Week-by-Week",
+            days: 7,
           };
         }
         return {
@@ -823,7 +912,24 @@
           title: "Monthly",
           prefix: "M",
           byBy: "Month-by-Month",
+          days: 30,
         };
+      }
+
+      // Convert a % rate entered for one period into the rate applied each simulation step.
+      function convertRateToSimPeriod(ratePercent, inputPeriod, simPeriod) {
+        if (!ratePercent || ratePercent === 0) return 0;
+        const inputMeta = getPeriodMeta(inputPeriod);
+        const simMeta = getPeriodMeta(simPeriod);
+        return ratePercent * (simMeta.days / inputMeta.days);
+      }
+
+      // Convert a fixed amount entered for one period into the amount applied each simulation step.
+      function convertAmountToSimPeriod(amount, inputPeriod, simPeriod) {
+        if (!amount || amount === 0) return 0;
+        const inputMeta = getPeriodMeta(inputPeriod);
+        const simMeta = getPeriodMeta(simPeriod);
+        return amount * (simMeta.days / inputMeta.days);
       }
 
       function syncCurrencyDisplay() {
@@ -889,21 +995,50 @@
 
       function syncPeriodLabels() {
         const meta = getPeriodMeta();
+        const costMeta = getPeriodMeta(costPeriodSelect.value);
+        const depositMeta = getPeriodMeta(depositPeriodSelect.value);
+        const withdrawalMeta = getPeriodMeta(withdrawalPeriodSelect.value);
+
         numPeriodsLabel.textContent = `Number of ${meta.unitPlural}`;
         document.getElementById("returnModeLabel").textContent =
           `${meta.title} return`;
         stableReturnLabel.textContent = `${meta.title} return (%)`;
-        withdrawalToggleText.textContent = `Enable ${meta.adjective} withdrawal`;
+        stableReturnModeText.textContent = `Stable (same each ${meta.unit})`;
+        variableReturnModeText.textContent = `${meta.title}-by-${meta.title}`;
+
+        depositToggleText.textContent = `Enable ${depositMeta.adjective} deposits`;
+        depositLabel.textContent = `${depositMeta.title} deposit amount`;
+        depositHint.textContent =
+          `Added at the start of each ${meta.unit} before return` +
+          (depositPeriodSelect.value !== periodSelect.value
+            ? ` (converted from ${depositMeta.adjective} amount).`
+            : ".");
+
+        withdrawalToggleText.textContent = `Enable ${withdrawalMeta.adjective} withdrawal`;
         withdrawalLabel.textContent =
-          `${meta.title} withdrawal (% of balance after return and costs)`;
-        costLabel.textContent = `Estimated costs per ${meta.unit} (%)`;
+          `${withdrawalMeta.title} withdrawal (%)`;
+        costLabel.textContent = `Estimated costs (${costMeta.title.toLowerCase()} %)`;
+
+        costHint.textContent =
+          `Covers fees + spread + slippage. You enter ${costMeta.adjective} costs; applied each ${meta.unit} of the simulation` +
+          (costPeriodSelect.value !== periodSelect.value
+            ? ` (converted from ${costMeta.adjective} rate).`
+            : ".");
+
         breakdownTitle.textContent = `${meta.byBy} Breakdown`;
         breakdownCaption.textContent =
-          `${meta.title} ledger of starting balance, profit or loss, costs, withdrawals, and ending balance`;
+          `${meta.title} ledger of starting balance, deposits, profit or loss, costs, withdrawals, and ending balance`;
         if (variableReturnHint) {
           variableReturnHint.textContent =
             `Set a return % for each ${meta.unit}. Positive or negative values are allowed.`;
         }
+      }
+
+      function syncLinkedPeriods() {
+        costPeriodSelect.value = periodSelect.value;
+        depositPeriodSelect.value = periodSelect.value;
+        withdrawalPeriodSelect.value = periodSelect.value;
+        syncPeriodLabels();
       }
 
       currencySelect.addEventListener("change", syncCurrencyDisplay);
@@ -919,10 +1054,18 @@
       });
 
       periodSelect.addEventListener("change", () => {
-        syncPeriodLabels();
+        syncLinkedPeriods();
         if (getReturnMode() === "variable") {
           buildMonthlyReturnInputs();
         }
+      });
+
+      costPeriodSelect.addEventListener("change", syncPeriodLabels);
+      depositPeriodSelect.addEventListener("change", syncPeriodLabels);
+      withdrawalPeriodSelect.addEventListener("change", syncPeriodLabels);
+
+      depositToggle.addEventListener("change", () => {
+        depositField.classList.toggle("visible", depositToggle.checked);
       });
 
       withdrawalToggle.addEventListener("change", () => {
@@ -947,8 +1090,15 @@
         const startingCapital = parseFloat(startingCapitalInput.value);
         const numPeriods = parseInt(numMonthsInput.value, 10);
         const period = getPeriodMeta().period;
+        const costPeriod = costPeriodSelect.value;
+        const depositPeriod = depositPeriodSelect.value;
+        const withdrawalPeriod = withdrawalPeriodSelect.value;
         const returnMode = getReturnMode();
         const costPercent = parseFloat(costPercentInput.value || "0");
+        const depositEnabled = depositToggle.checked;
+        const depositAmount = depositEnabled
+          ? parseFloat(depositAmountInput.value)
+          : 0;
         const withdrawalEnabled = withdrawalToggle.checked;
         const withdrawalPercent = withdrawalEnabled
           ? parseFloat(withdrawalPercentInput.value)
@@ -978,6 +1128,16 @@
           };
         }
 
+        if (
+          depositEnabled &&
+          (isNaN(depositAmount) || depositAmount < 0)
+        ) {
+          return {
+            error: "Deposit amount must be 0 or greater.",
+            focusField: depositAmountInput,
+          };
+        }
+
         let periodReturns;
         const meta = getPeriodMeta();
 
@@ -986,7 +1146,7 @@
           if (isNaN(stableReturn)) {
             return {
               error:
-                `Enter a valid ${meta.label}ly return percentage (positive or negative).`,
+                `Enter a valid ${meta.unit}ly return percentage (positive or negative).`,
               focusField: monthlyReturnInput,
             };
           }
@@ -999,7 +1159,7 @@
             if (isNaN(val)) {
               return {
                 error:
-                  `Enter a valid return % for ${meta.label} ` + (i + 1) + ".",
+                  `Enter a valid return % for ${meta.unit} ` + (i + 1) + ".",
                 focusField: monthInputs[i],
               };
             }
@@ -1024,9 +1184,14 @@
           startingCapital,
           periodReturns,
           period,
+          costPeriod,
+          depositPeriod,
+          withdrawalPeriod,
           returnMode,
           numPeriods,
           costPercent,
+          depositEnabled,
+          depositAmount,
           withdrawalEnabled,
           withdrawalPercent,
         };
@@ -1034,10 +1199,11 @@
 
       /*
        * Core compounding logic — runs once per period in this order:
-       * 1) Apply return
-       * 2) Apply costs (fees + spread + slippage) as % of balance after return
-       * 3) Optional withdrawal as % of balance after return and costs
-       * 4) Carry ending balance forward to next period
+       * 1) Optional deposit at period start
+       * 2) Apply return
+       * 3) Apply costs (fees + spread + slippage) as % of balance after return
+       * 4) Optional withdrawal as % of balance after return and costs
+       * 5) Carry ending balance forward to next period
        *
        * Edge cases:
        * - Zero starting capital: all periods remain at 0
@@ -1048,17 +1214,41 @@
           startingCapital,
           periodReturns,
           numPeriods,
+          period,
+          costPeriod,
+          depositPeriod,
+          withdrawalPeriod,
           costPercent,
+          depositEnabled,
+          depositAmount,
           withdrawalEnabled,
           withdrawalPercent,
         } = params;
 
+        const effectiveCostPercent = convertRateToSimPeriod(
+          costPercent,
+          costPeriod,
+          period,
+        );
+        const effectiveDepositAmount = convertAmountToSimPeriod(
+          depositAmount,
+          depositPeriod,
+          period,
+        );
+        const effectiveWithdrawalPercent = convertRateToSimPeriod(
+          withdrawalPercent,
+          withdrawalPeriod,
+          period,
+        );
+
         const rows = [];
         let previousBalance = startingCapital;
         let totalWithdrawn = 0;
+        let totalDeposited = 0;
         let totalCosts = 0;
         let balanceClamped = false;
-        let balanceDepleted = startingCapital === 0;
+        let balanceDepleted =
+          startingCapital === 0 && !(depositEnabled && effectiveDepositAmount > 0);
 
         // Risk metrics are calculated on the "pre-withdrawal" equity curve,
         // so withdrawals don't appear as drawdowns.
@@ -1067,12 +1257,14 @@
 
         for (let idx = 1; idx <= numPeriods; idx++) {
           const periodReturn = periodReturns[idx - 1];
+          const canDeposit = depositEnabled && effectiveDepositAmount > 0;
 
-          if (balanceDepleted) {
+          if (balanceDepleted && !canDeposit) {
             rows.push({
               periodIndex: idx,
               periodReturn,
               startingBalance: 0,
+              deposit: 0,
               profitLoss: 0,
               costs: 0,
               withdrawal: 0,
@@ -1082,13 +1274,21 @@
           }
 
           const startingBalance = previousBalance;
+
+          let deposit = 0;
+          if (canDeposit) {
+            deposit = effectiveDepositAmount;
+            totalDeposited += deposit;
+          }
+
+          const balanceAfterDeposit = startingBalance + deposit;
           const balanceAfterReturn =
-            startingBalance * (1 + periodReturn / 100);
+            balanceAfterDeposit * (1 + periodReturn / 100);
 
           // Costs are applied after return
           let costs = 0;
-          if (costPercent > 0) {
-            costs = balanceAfterReturn * (costPercent / 100);
+          if (effectiveCostPercent > 0) {
+            costs = balanceAfterReturn * (effectiveCostPercent / 100);
           }
           let balanceAfterCosts = balanceAfterReturn - costs;
           if (balanceAfterCosts < 0) {
@@ -1097,20 +1297,22 @@
           }
           totalCosts += costs;
 
-          // Profit/Loss shown as NET (after costs) and BEFORE withdrawals
-          const profitLoss = balanceAfterCosts - startingBalance;
+          // Trading profit/loss only (excludes deposits)
+          const profitLoss = balanceAfterCosts - balanceAfterDeposit;
 
-          // Risk series ignores withdrawals
+          // Risk series ignores withdrawals; uses post-cost equity
           equityForRisk.push(balanceAfterCosts);
-          if (startingBalance > 0) {
-            netPeriodReturns.push((balanceAfterCosts - startingBalance) / startingBalance);
+          if (balanceAfterDeposit > 0) {
+            netPeriodReturns.push(
+              (balanceAfterCosts - balanceAfterDeposit) / balanceAfterDeposit,
+            );
           }
 
           let withdrawal = 0;
           let endingBalance = balanceAfterCosts;
 
-          if (withdrawalEnabled && withdrawalPercent > 0) {
-            withdrawal = balanceAfterCosts * (withdrawalPercent / 100);
+          if (withdrawalEnabled && effectiveWithdrawalPercent > 0) {
+            withdrawal = balanceAfterCosts * (effectiveWithdrawalPercent / 100);
             endingBalance = balanceAfterCosts - withdrawal;
             totalWithdrawn += withdrawal;
 
@@ -1124,6 +1326,7 @@
             periodIndex: idx,
             periodReturn,
             startingBalance,
+            deposit,
             profitLoss,
             costs,
             withdrawal,
@@ -1131,14 +1334,12 @@
           });
 
           previousBalance = endingBalance;
-
-          if (endingBalance === 0) {
-            balanceDepleted = true;
-          }
+          balanceDepleted = endingBalance === 0 && !canDeposit;
         }
 
         const finalCapital = previousBalance;
-        const totalProfit = finalCapital - startingCapital + totalWithdrawn;
+        const totalProfit =
+          finalCapital - startingCapital - totalDeposited + totalWithdrawn;
 
         const risk = computeRiskMetrics(equityForRisk, netPeriodReturns);
 
@@ -1146,6 +1347,7 @@
           rows,
           finalCapital,
           totalProfit,
+          totalDeposited,
           totalWithdrawn,
           totalCosts,
           balanceClamped,
@@ -1185,9 +1387,16 @@
       }
 
       function renderSummary(data, params) {
-        const { symbol, startingCapital, withdrawalEnabled } = params;
-        const { finalCapital, totalProfit, totalWithdrawn, totalCosts, risk } =
-          data;
+        const { symbol, startingCapital, withdrawalEnabled, depositEnabled } =
+          params;
+        const {
+          finalCapital,
+          totalProfit,
+          totalDeposited,
+          totalWithdrawn,
+          totalCosts,
+          risk,
+        } = data;
         const profitClass = totalProfit >= 0 ? "positive" : "negative";
 
         let html = `
@@ -1231,6 +1440,15 @@
         `;
         }
 
+        if (depositEnabled && totalDeposited > 0) {
+          html += `
+          <div class="summary-item">
+            <div class="label">Total deposited</div>
+            <div class="value">${formatMoney(totalDeposited, symbol)}</div>
+          </div>
+        `;
+        }
+
         if (withdrawalEnabled) {
           html += `
           <div class="summary-item">
@@ -1251,15 +1469,17 @@
       }
 
       function renderTable(data, params) {
-        const { symbol, withdrawalEnabled, returnMode } = params;
+        const { symbol, withdrawalEnabled, depositEnabled, returnMode } = params;
         const { rows } = data;
         const showReturnCol = returnMode === "variable";
+        const showDepositCol = depositEnabled;
         const meta = getPeriodMeta();
 
         let headerCells = `
         <th scope="col">${meta.title}</th>
         ${showReturnCol ? '<th scope="col">Return %</th>' : ""}
         <th scope="col">Starting Balance</th>
+        ${showDepositCol ? '<th scope="col">Deposit</th>' : ""}
         <th scope="col">Profit/Loss</th>
         <th scope="col">Costs</th>
         ${withdrawalEnabled ? '<th scope="col">Withdrawal</th>' : ""}
@@ -1288,6 +1508,13 @@
 
             cells += `
           <td class="money-cell">${formatMoney(row.startingBalance, symbol)}</td>
+        `;
+
+            if (showDepositCol) {
+              cells += `<td class="money-cell profit-positive">+${formatMoney(row.deposit, symbol)}</td>`;
+            }
+
+            cells += `
           <td class="money-cell ${plClass}">${plSign}${formatMoney(row.profitLoss, symbol)}</td>
           <td class="money-cell">${formatMoney(row.costs, symbol)}</td>
         `;
